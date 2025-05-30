@@ -1,46 +1,50 @@
-name: Export DAO-GOGS to PDF
+name: Export PDF with Cover
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  export-pdf:
+  export:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install GitBook and PDF plugins
-        run: |
-          npm install -g gitbook-cli
-          gitbook fetch 3.2.3
-          gitbook install
-
-      - name: Generate GitBook
-        run: gitbook build
-
-      - name: Generate PDF
-        run: |
-          npm install -g gitbook-pdf
-          gitbook pdf ./ ./DAO-GOGS-Systemtled.pdf
-
-      - name: Attach Cover (Optional)
+      - name: Install Puppeteer dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pdftk imagemagick
-          convert -density 300 cover.png -quality 100 cover.pdf
-          pdftk cover.pdf DAO-GOGS-Systemtled.pdf cat output DAO-GOGS-Full.pdf
+          sudo apt-get install -y \
+            libnss3 \
+            libxss1 \
+            libasound2 \
+            fonts-liberation \
+            libatk-bridge2.0-0 \
+            libgtk-3-0 \
+            libx11-xcb1 \
+            xdg-utils
+
+      - name: Install markdown-pdf and puppeteer
+        run: npm install -g markdown-pdf puppeteer
+
+      - name: Generate PDF with cover
+        run: |
+          mkdir -p output
+          echo "<html><head><style>body {font-family:sans-serif;}</style></head><body><h1>DAO-GOGS Systemtled</h1></body></html>" > output/cover.html
+          markdown-pdf README.md \
+            --paper-format A4 \
+            --prepend output/cover.html \
+            --out output/DAO-GOGS-Docs.pdf
 
       - name: Upload PDF Artifact
-      - uses: actions/upload-artifact@v2
-        with: 
-          name: DAO-GOGS-Systemtled-PDF
-          path: DAO-GOGS-Full.pdf
+        uses: actions/upload-artifact@v3
+        with:
+          name: DAO-GOGS-PDF
+          path: output/DAO-GOGS-Docs.pdf
