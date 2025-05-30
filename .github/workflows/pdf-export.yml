@@ -40,7 +40,7 @@ jobs:
           pdftk cover.pdf DAO-GOGS-Systemtled.pdf cat output DAO-GOGS-Full.pdf
 
       - name: Upload PDF Artifact
-        uses: actions/upload-artifact@v3
-        with:
+      - uses: actions/upload-artifact@v2
+        with: 
           name: DAO-GOGS-Systemtled-PDF
           path: DAO-GOGS-Full.pdf
