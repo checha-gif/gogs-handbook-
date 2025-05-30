@@ -1,0 +1,46 @@
+name: Export DAO-GOGS to PDF
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  export-pdf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install GitBook and PDF plugins
+        run: |
+          npm install -g gitbook-cli
+          gitbook fetch 3.2.3
+          gitbook install
+
+      - name: Generate GitBook
+        run: gitbook build
+
+      - name: Generate PDF
+        run: |
+          npm install -g gitbook-pdf
+          gitbook pdf ./ ./DAO-GOGS-Systemtled.pdf
+
+      - name: Attach Cover (Optional)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pdftk imagemagick
+          convert -density 300 cover.png -quality 100 cover.pdf
+          pdftk cover.pdf DAO-GOGS-Systemtled.pdf cat output DAO-GOGS-Full.pdf
+
+      - name: Upload PDF Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: DAO-GOGS-Systemtled-PDF
+          path: DAO-GOGS-Full.pdf
