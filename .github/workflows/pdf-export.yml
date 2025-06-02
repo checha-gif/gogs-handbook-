@@ -2,49 +2,42 @@ name: Export PDF with Cover
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+    inputs:
+      cover:
+        description: 'Cover image number (1, 2, 3)'
+        required: false
+        default: '1'
 
 jobs:
-  export:
+  build-pdf:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
 
-      - name: Install Puppeteer dependencies
+      - name: Install md-to-pdf
+        run: npm install -g md-to-pdf
+
+      - name: Generate PDF with selected cover
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libnss3 \
-            libxss1 \
-            libasound2 \
-            fonts-liberation \
-            libatk-bridge2.0-0 \
-            libgtk-3-0 \
-            libx11-xcb1 \
-            xdg-utils
+          COVER_PATH="./covers/cover-${{ github.event.inputs.cover }}.png"
+          OUTPUT="GOGS_DOC_v1-$(date +'%Y%m%d').pdf"
+          echo "Using cover: $COVER_PATH"
+          md-to-pdf README.md \
+            --stylesheet ./pdf-styles.css \
+            --pdf-options "{\"format\": \"A4\"}" \
+            --image-scale 1.0 \
+            --cover-image "$COVER_PATH" \
+            --output "$OUTPUT"
 
-      - name: Install markdown-pdf and puppeteer
-        run: npm install -g markdown-pdf puppeteer
-
-      - name: Generate PDF with cover
-        run: |
-          mkdir -p output
-          echo "<html><head><style>body {font-family:sans-serif;}</style></head><body><h1>DAO-GOGS Systemtled</h1></body></html>" > output/cover.html
-          markdown-pdf README.md \
-            --paper-format A4 \
-            --prepend output/cover.html \
-            --out output/DAO-GOGS-Docs.pdf
-
-      - name: Upload PDF Artifact
+      - name: Upload PDF artifact
         uses: actions/upload-artifact@v3
         with:
-          name: DAO-GOGS-PDF
-          path: output/DAO-GOGS-Docs.pdf
+          name: gogs-doc-pdf
+          path: GOGS_DOC_v1-*.pdf
